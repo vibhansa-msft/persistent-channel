@@ -3,8 +3,8 @@ package pchannel
 import (
 	"fmt"
 	"os"
+	"path"
 	"path/filepath"
-	"strings"
 	"sync"
 
 	"github.com/google/uuid"
@@ -68,6 +68,9 @@ func (pc *PChannel[T]) Init(c PChannelConfig, s Serialize[T], d Deserialize[T]) 
 		return err
 	}
 
+	pc.channel = make(chan PMessage[T], pc.MaxCacheCount)
+	pc.cacheCount = 0
+
 	if pc.PChannelID == "" {
 		// This is a new channel getting created so allocate an ID
 		pc.PChannelID = uuid.NewString()
@@ -78,7 +81,6 @@ func (pc *PChannel[T]) Init(c PChannelConfig, s Serialize[T], d Deserialize[T]) 
 		if err != nil {
 			return err
 		}
-
 	} else {
 		// This is PChannel restore case so load existing data from disk
 		err := dirExists(pc.persistPath)
@@ -91,9 +93,6 @@ func (pc *PChannel[T]) Init(c PChannelConfig, s Serialize[T], d Deserialize[T]) 
 			return err
 		}
 	}
-
-	pc.channel = make(chan PMessage[T], pc.MaxCacheCount)
-	pc.cacheCount = 0
 
 	return nil
 }
@@ -121,34 +120,45 @@ func (pc *PChannel[T]) restoreChannel() error {
 
 	sortFileList(files)
 
-	lastFile := files[len(files)-1]
-	s := strings.Split(lastFile.Name(), "_")
-	index := s[len(s)-1]
-	fmt.Println(index)
+	if len(files) != 0 {
+		// There are items to be recovered
 
-	// TODO : Push some of these files to the channel in memory
+		pc.alphaSeq.SetString(path.Base(files[len(files)-1].Name()))
+
+		for _, file := range files {
+			if pc.cacheCount >= pc.MaxCacheCount {
+				break
+			}
+
+			err := pc.readAndQueue(path.Base(file.Name()), filepath.Join(pc.persistPath, file.Name()))
+			if err != nil {
+				return err
+			}
+			pc.alphaSeqCache.SetString(path.Base(file.Name()))
+		}
+	}
+
 	return nil
 }
 
 func (pc *PChannel[T]) PutMessage(data T) error {
 	id := pc.alphaSeq.Next()
-	fname := filepath.Join(pc.persistPath, id+".msg")
+	fname := filepath.Join(pc.persistPath, id)
 
 	err := os.WriteFile(fname, pc.serialize(data), 0447)
 	if err != nil {
 		return err
 	}
-
-	msg := PMessage[T]{
-		data: data,
-		id:   id,
-	}
-
 	pc.mtx.Lock()
 	defer pc.mtx.Unlock()
 
-	if pc.cacheCount <= pc.MaxCacheCount {
+	if pc.cacheCount < pc.MaxCacheCount {
 		// This message goes to cache as well
+		msg := PMessage[T]{
+			data: data,
+			id:   id,
+		}
+
 		pc.channel <- msg
 		pc.cacheCount++
 		_ = pc.alphaSeqCache.Next()
@@ -169,21 +179,12 @@ func (pc *PChannel[T]) GetMessage() (T, string) {
 		if pc.alphaSeq.Get() > pc.alphaSeqCache.Get() {
 			// There is atleast one message on disk that can be read
 			id := pc.alphaSeqCache.Next()
-			fname := filepath.Join(pc.persistPath, id+".msg")
-
-			data, err := os.ReadFile(fname)
+			fname := filepath.Join(pc.persistPath, id)
+			err := pc.readAndQueue(id, fname)
 			if err != nil {
 				var x T
 				return x, err.Error()
 			}
-
-			msg := PMessage[T]{
-				data: pc.deserialize(data),
-				id:   id,
-			}
-
-			pc.channel <- msg
-			pc.cacheCount++
 		}
 	}
 
@@ -191,6 +192,22 @@ func (pc *PChannel[T]) GetMessage() (T, string) {
 }
 
 func (pc *PChannel[T]) ReleseMessage(id string) error {
-	fname := filepath.Join(pc.persistPath, id+".msg")
+	fname := filepath.Join(pc.persistPath, id)
 	return os.Remove(fname)
+}
+
+func (pc *PChannel[T]) readAndQueue(id string, fname string) error {
+	data, err := os.ReadFile(fname)
+	if err != nil {
+		return err
+	}
+
+	msg := PMessage[T]{
+		data: pc.deserialize(data),
+		id:   id,
+	}
+
+	pc.channel <- msg
+	pc.cacheCount++
+	return nil
 }
