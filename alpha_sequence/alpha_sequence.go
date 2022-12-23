@@ -74,6 +74,11 @@ func (as *AlphaSequence) SetString(val string) {
 	as.sequence = val
 }
 
+// Get : Get the current value of the sequence
+func (as *AlphaSequence) Get() string {
+	return as.sequence
+}
+
 // GetNextSequence : Generate the next sequence number and return
 func (as *AlphaSequence) Next() string {
 	as.mtx.Lock()

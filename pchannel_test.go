@@ -19,13 +19,15 @@ func (suite *pchannelTestSuite) SetupTest() {
 const diskPath = "C:\\Users\\vibhansa\\Documents\\Projects\\persistent-channel"
 
 func (suite *pchannelTestSuite) TestCreatePChannelSuccess() {
-	p := &PChannel{}
+	p := &PChannel[string]{}
 	err := p.Init(PChannelConfig{
 		PChannelID:    "",
 		MaxMsgCount:   10,
 		MaxCacheCount: 5,
 		DiskPath:      diskPath,
-	})
+	}, func(s string) []byte { return []byte(s) },
+		func(s []byte) string { return string(s) },
+	)
 
 	suite.assert.Nil(err)
 
@@ -34,25 +36,29 @@ func (suite *pchannelTestSuite) TestCreatePChannelSuccess() {
 }
 
 func (suite *pchannelTestSuite) TestCreatePChannelWrongSize() {
-	p := &PChannel{}
+	p := &PChannel[string]{}
 	err := p.Init(PChannelConfig{
 		PChannelID:    "",
 		MaxMsgCount:   5,
 		MaxCacheCount: 10,
 		DiskPath:      diskPath,
-	})
+	}, func(s string) []byte { return []byte(s) },
+		func(s []byte) string { return string(s) },
+	)
 
 	suite.assert.NotNil(err)
 }
 
 func (suite *pchannelTestSuite) TestCreatePChannelWrongPath() {
-	p := &PChannel{}
+	p := &PChannel[string]{}
 	err := p.Init(PChannelConfig{
 		PChannelID:    "",
 		MaxMsgCount:   5,
 		MaxCacheCount: 10,
 		DiskPath:      "D:\\",
-	})
+	}, func(s string) []byte { return []byte(s) },
+		func(s []byte) string { return string(s) },
+	)
 
 	suite.assert.NotNil(err)
 }
