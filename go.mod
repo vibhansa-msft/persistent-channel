@@ -1,4 +1,4 @@
-module github.com/vibhansa-msft/persistent-channel
+module github.com/vibhansa-msft/pchannel
 
 go 1.23
 
