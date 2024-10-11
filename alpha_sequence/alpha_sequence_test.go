@@ -131,6 +131,20 @@ func (suite *alphaSequenceTestSuite) TestAlphaSequenceDecrement() {
 	suite.assert.Equal(as.Prev(), "zz")
 }
 
+func (suite *alphaSequenceTestSuite) TestAlphaSequenceOverRun() {
+	as, err := CreateAlphaSequence(2)
+	suite.assert.NotNil(as)
+	suite.assert.Nil(err)
+
+	as.SetString("zz")
+	suite.assert.Equal(as.Prev(), "zz")
+	suite.assert.Equal(as.Prev(), "zy")
+	suite.assert.Equal(as.Next(), "zx")
+	suite.assert.Equal(as.Next(), "zy")
+	suite.assert.Equal(as.Next(), "zz")
+	suite.assert.Equal(as.Next(), "aa")
+}
+
 func TestAlphaSequence(t *testing.T) {
 	suite.Run(t, new(alphaSequenceTestSuite))
 }

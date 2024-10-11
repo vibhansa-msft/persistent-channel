@@ -58,12 +58,12 @@ func (pc *PChannel[T]) Init(c PChannelConfig, s Serialize[T], d Deserialize[T]) 
 
 	pc.persistPath = filepath.Join(pc.DiskPath, pc.PChannelID)
 
-	pc.alphaSeq, err = alpha_sequence.CreateAlphaSequence(5)
+	pc.alphaSeq, err = alpha_sequence.CreateAlphaSequence(8)
 	if err != nil {
 		return err
 	}
 
-	pc.alphaSeqCache, err = alpha_sequence.CreateAlphaSequence(5)
+	pc.alphaSeqCache, err = alpha_sequence.CreateAlphaSequence(8)
 	if err != nil {
 		return err
 	}
