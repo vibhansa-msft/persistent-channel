@@ -8,7 +8,7 @@ import (
 	"sync"
 
 	"github.com/google/uuid"
-	"github.com/vibhansa-msft/pchannel/alpha_sequence"
+	"github.com/vibhansa-msft/persistent-channel/alpha_sequence"
 )
 
 const (
