@@ -16,7 +16,7 @@ func (suite *pchannelTestSuite) SetupTest() {
 	suite.assert = assert.New(suite.T())
 }
 
-const diskPath = "C:\\Users\\vibhansa\\Documents\\Projects\\persistent-channel"
+const diskPath = "./temp"
 
 func (suite *pchannelTestSuite) TestCreatePChannelSuccess() {
 	p := &PChannel[string]{}
@@ -55,7 +55,7 @@ func (suite *pchannelTestSuite) TestCreatePChannelWrongPath() {
 		PChannelID:    "",
 		MaxMsgCount:   5,
 		MaxCacheCount: 10,
-		DiskPath:      "D:\\",
+		DiskPath:      diskPath,
 	}, func(s string) []byte { return []byte(s) },
 		func(s []byte) string { return string(s) },
 	)
@@ -70,6 +70,7 @@ func (suite *pchannelTestSuite) TestCreatePChannelPutAndGet() {
 		MaxMsgCount:   10,
 		MaxCacheCount: 8,
 		DiskPath:      diskPath,
+		IdLen:         5,
 	}, func(s string) []byte { return []byte(s) },
 		func(s []byte) string { return string(s) },
 	)
@@ -96,6 +97,7 @@ func (suite *pchannelTestSuite) TestOnlyPersistMessage() {
 		MaxMsgCount:   5,
 		MaxCacheCount: 1,
 		DiskPath:      diskPath,
+		IdLen:         5,
 	}, func(s string) []byte { return []byte(s) },
 		func(s []byte) string { return string(s) },
 	)
@@ -133,6 +135,7 @@ func (suite *pchannelTestSuite) TestRestoreChannel() {
 		MaxMsgCount:   5,
 		MaxCacheCount: 1,
 		DiskPath:      diskPath,
+		IdLen:         5,
 	}, func(s string) []byte { return []byte(s) },
 		func(s []byte) string { return string(s) },
 	)
@@ -164,6 +167,7 @@ func (suite *pchannelTestSuite) TestRestoreChannel() {
 		MaxMsgCount:   5,
 		MaxCacheCount: 1,
 		DiskPath:      diskPath,
+		IdLen:         5,
 	}, func(s string) []byte { return []byte(s) },
 		func(s []byte) string { return string(s) },
 	)

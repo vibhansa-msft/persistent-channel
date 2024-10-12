@@ -12,7 +12,8 @@ import (
 )
 
 const (
-	IndexFileName = "index.pch"
+	IndexFileName      = "index.pch"
+	DEFAULT_MSG_ID_LEN = 8
 )
 
 type PMessage[T any] struct {
@@ -58,12 +59,16 @@ func (pc *PChannel[T]) Init(c PChannelConfig, s Serialize[T], d Deserialize[T]) 
 
 	pc.persistPath = filepath.Join(pc.DiskPath, pc.PChannelID)
 
-	pc.alphaSeq, err = alpha_sequence.CreateAlphaSequence(8)
+	if c.IdLen == 0 {
+		pc.IdLen = DEFAULT_MSG_ID_LEN
+	}
+
+	pc.alphaSeq, err = alpha_sequence.CreateAlphaSequence(pc.IdLen)
 	if err != nil {
 		return err
 	}
 
-	pc.alphaSeqCache, err = alpha_sequence.CreateAlphaSequence(8)
+	pc.alphaSeqCache, err = alpha_sequence.CreateAlphaSequence(pc.IdLen)
 	if err != nil {
 		return err
 	}
@@ -77,7 +82,7 @@ func (pc *PChannel[T]) Init(c PChannelConfig, s Serialize[T], d Deserialize[T]) 
 		pc.persistPath = filepath.Join(pc.DiskPath, pc.PChannelID)
 
 		// Create a new directory with uid to persist the messages of this channel
-		err := os.Mkdir(pc.persistPath, 0447)
+		err := os.Mkdir(pc.persistPath, 0777)
 		if err != nil {
 			return err
 		}
@@ -138,6 +143,9 @@ func (pc *PChannel[T]) restoreChannel() error {
 		}
 	}
 
+	// Last message pushed to the queue was set as the base so now we need to point this to the next message
+	_ = pc.alphaSeqCache.Next()
+
 	return nil
 }
 
@@ -159,7 +167,13 @@ func (pc *PChannel[T]) PutMessage(data T) error {
 			id:   id,
 		}
 
-		pc.channel <- msg
+		select {
+		case pc.channel <- msg:
+			break
+		default:
+			return fmt.Errorf("channel is full or closed")
+		}
+
 		pc.cacheCount++
 		_ = pc.alphaSeqCache.Next()
 	}
@@ -168,7 +182,13 @@ func (pc *PChannel[T]) PutMessage(data T) error {
 }
 
 func (pc *PChannel[T]) GetMessage() (T, string) {
-	msg := <-pc.channel
+	// If the pc.channel is closed then return empty message
+	msg, ok := <-pc.channel
+	if !ok && pc.cacheCount == 0 {
+		// Channel is closed
+		var x T
+		return x, ""
+	}
 
 	pc.mtx.Lock()
 	defer pc.mtx.Unlock()

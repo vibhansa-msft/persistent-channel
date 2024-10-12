@@ -12,6 +12,7 @@ type PChannelConfig struct {
 	MaxMsgCount   uint64 // Maximum number of messages this channel can store
 	MaxCacheCount uint64 // Maximum number of messages this channel can keep in memory, rest will be saved on disk
 	DiskPath      string // Path where messages will be persisted
+	IdLen         int    // Length of the message id for each message, default 8
 }
 
 func validateConfig(c *PChannelConfig) error {
