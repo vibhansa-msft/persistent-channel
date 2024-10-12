@@ -35,6 +35,23 @@ func (suite *pchannelTestSuite) TestCreatePChannelSuccess() {
 	suite.assert.Nil(err)
 }
 
+func (suite *pchannelTestSuite) TestCreatePChannelWithNewDiskath() {
+	p := &PChannel[string]{}
+	err := p.Init(PChannelConfig{
+		PChannelID:    "",
+		MaxMsgCount:   10,
+		MaxCacheCount: 5,
+		DiskPath:      diskPath + "/new",
+	}, func(s string) []byte { return []byte(s) },
+		func(s []byte) string { return string(s) },
+	)
+
+	suite.assert.Nil(err)
+
+	err = p.Destroy()
+	suite.assert.Nil(err)
+}
+
 func (suite *pchannelTestSuite) TestCreatePChannelWrongSize() {
 	p := &PChannel[string]{}
 	err := p.Init(PChannelConfig{

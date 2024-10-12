@@ -22,7 +22,10 @@ func validateConfig(c *PChannelConfig) error {
 
 	err := dirExists(c.DiskPath)
 	if err != nil {
-		return err
+		err = os.MkdirAll(c.DiskPath, 0777)
+		if err != nil {
+			return err
+		}
 	}
 
 	return nil
